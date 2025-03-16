@@ -1,23 +1,12 @@
 import logo from './logo.svg';
+import CyberDivination from "./CyberDivination";  // 你的占卜组件
+import CyberDivination2 from "./CyberDivination2";  // 你的占卜组件
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <CyberDivination2 />  {/* 这里放你的占卜组件 */}
     </div>
   );
 }
