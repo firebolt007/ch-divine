@@ -14,7 +14,7 @@ import {
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
 
-const CyberDivination = () => {
+const CyberDivination2 = () => {
   // 基本状态
   const [currentStep, setCurrentStep] = useState(0); // 0: 初始状态, 1-6: 掷硬币步骤
   const [isFlipping, setIsFlipping] = useState(false);
@@ -76,40 +76,75 @@ const CyberDivination = () => {
   };
 
   // 设置摇动检测
-  const setupShakeDetection = () => {
-    // 加速度阈值（灵敏度）
-    const SHAKE_THRESHOLD = 15;
+const setupShakeDetection = () => {
+    // 降低加速度阈值（提高灵敏度）
+    const SHAKE_THRESHOLD = 7; // 从15降低到7
     
-    // 时间间隔限制（毫秒）
-    const SHAKE_TIMEOUT = 1000;
+    // 减少时间间隔（更频繁地响应摇动）
+    const SHAKE_TIMEOUT = 100; 
     let lastShakeTime = 0;
     
-    window.addEventListener('devicemotion', (event) => {
+    // 添加调试日志
+    console.log('开始监听设备动作事件');
+    
+    const deviceMotionHandler = (event) => {
       const { accelerationIncludingGravity } = event;
       
       if (!accelerationIncludingGravity) return;
       
-      const x = accelerationIncludingGravity.x;
-      const y = accelerationIncludingGravity.y;
-      const z = accelerationIncludingGravity.z;
+      const x = accelerationIncludingGravity.x || 0;
+      const y = accelerationIncludingGravity.y || 0;
+      const z = accelerationIncludingGravity.z || 0;
       
       setAcceleration({ x, y, z });
-      
-      const acceleration = Math.sqrt(x * x + y * y + z * z);
-      const currentTime = new Date().getTime();
-      
-      if (acceleration > SHAKE_THRESHOLD) {
-        if (currentTime - lastShakeTime > SHAKE_TIMEOUT) {
-          if (isFlipping || currentStep === 0 || currentStep > 6) return;
-          
-          lastShakeTime = currentTime;
-          setShakeDetected(true);
-          
-          // 触发掷硬币
-          handleShakeToss();
-        }
+      if(currentStep === 1) {
+        setSnackbarMessage('isFlipping');
+        setSnackbarOpen(true);
       }
-    });
+      // 检查是否处于可以响应摇动的状态
+      if (isFlipping || currentStep === 0 || currentStep > 6) return;
+      
+      // 直接用最简单的触发逻辑解决问题
+      // 任何轴上超过阈值的加速度都可能是摇动
+      const isSignificantMovement = 
+        Math.abs(x) > SHAKE_THRESHOLD || 
+        Math.abs(y) > SHAKE_THRESHOLD || 
+        Math.abs(z) > SHAKE_THRESHOLD;
+      
+      const currentTime = new Date().getTime();
+      setSnackbarMessage('✓ 触发!');
+      setSnackbarOpen(true);
+
+      // 如果检测到显著移动且间隔足够
+      if (isSignificantMovement && (currentTime - lastShakeTime > SHAKE_TIMEOUT)) {
+        console.log('✓ 触发有效摇动!', {x, y, z});
+        lastShakeTime = currentTime;
+        setShakeDetected(true);
+        
+        // 显示明显的视觉反馈
+        setSnackbarMessage('检测到摇动! 正在掷硬币...');
+        setSnackbarOpen(true);
+        
+        // 尝试振动反馈
+        if ('vibrate' in navigator) {
+          try {
+            navigator.vibrate(200);
+          } catch(e) {}
+        }
+        
+        // 触发掷硬币
+        handleShakeToss();
+      }
+    };
+  
+    // 添加事件监听器
+    window.addEventListener('devicemotion', deviceMotionHandler);
+    
+    // 返回一个清理函数，可以在组件卸载时移除监听器
+    return () => {
+      console.log('移除设备动作事件监听器');
+      window.removeEventListener('devicemotion', deviceMotionHandler);
+    };
   };
 
   // 处理摇动掷硬币事件
@@ -654,4 +689,4 @@ const CyberDivination = () => {
   );
 };
 
-export default CyberDivination;
+export default CyberDivination2;
