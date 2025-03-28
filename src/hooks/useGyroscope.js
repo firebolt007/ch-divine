@@ -106,7 +106,7 @@ export const useGyroscope = ({
     
      // 减少时间间隔（更频繁地响应摇动）
       const SHAKE_TIMEOUT = 600; 
-      let lastShakeTime = 0;
+      // let lastShakeTime = 0;
       if (debugMode) console.log('开始监听设备动作事件');
       const { accelerationIncludingGravity } = event;
       
@@ -128,7 +128,7 @@ export const useGyroscope = ({
         Math.abs(y) > SHAKE_THRESHOLD || 
         Math.abs(z) > SHAKE_THRESHOLD;
       
-      setLastshake(lastShakeTime);
+      // setLastshake(lastShakeTime);
       const currentTime = new Date().getTime();
 
       // 调试日志
@@ -137,14 +137,15 @@ export const useGyroscope = ({
           x: x.toFixed(2),
           y: y.toFixed(2),
           z: z.toFixed(2),
-          timeSinceLastShake: currentTime - lastShakeTime
+          timeSinceLastShake: currentTime - lastShakeRef.current
         });
       }
       
       // 如果检测到显著移动且间隔足够
-      if (isSignificantMovement && (currentTime - lastShakeTime > SHAKE_TIMEOUT)) {
+      if (isSignificantMovement && (currentTime - lastShakeRef.current > SHAKE_TIMEOUT)) {
         if (debugMode) console.log('✓ 触发有效摇动!', {x, y, z});
-        lastShakeTime = currentTime;
+        lastShakeRef.current = currentTime;
+        setLastshake(currentTime);
         setShakeDetected(true);
         
         // 显示明显的视觉反馈
