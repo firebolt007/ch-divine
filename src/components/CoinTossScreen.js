@@ -1,4 +1,5 @@
 import React from 'react';
+import { useEffect, useRef } from 'react';
 import { Box, Typography, Button, Paper, Grid } from '@mui/material';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import { AnimatedCoins, CoinRenderer, LineRenderer } from './UIElements';
@@ -11,11 +12,19 @@ const CoinTossScreen = ({
   lines, 
   acceleration, 
   shakeDetected,
+  isShaking,
   manualThrowCoin,
   handleShakeToss
 }) => {
   const debugMode = true; // 控制是否显示调试工具
 
+  useEffect(() => {
+    if (permissionStatus === 'granted' && isFlipping === false && shakeDetected) {
+      if (isShaking === false) {
+        handleShakeToss(acceleration);
+      }
+    }
+  }, [permissionStatus, isFlipping,shakeDetected,isShaking]);
   return (
     <Box sx={{ width: '100%' }}>
       <Paper sx={{ p: 3, mb: 2 }} elevation={2}>
@@ -30,74 +39,76 @@ const CoinTossScreen = ({
         {isFlipping ? (
           <AnimatedCoins />
         ) : (
+          // critical part
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             {permissionStatus === 'granted' ? (
-              <React.Fragment>
-                <Typography variant="body1" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 2 }}>
-                  请用力摇动手机掷硬币！
-                </Typography>
-                <Box sx={{ 
-                  p: 2, 
-                  bgcolor: 'info.light', 
-                  color: 'info.contrastText',
-                  borderRadius: 1,
-                  mb: 2,
-                  animation: 'pulse 1.5s infinite',
-                  '@keyframes pulse': {
-                    '0%': { opacity: 0.7 },
-                    '50%': { opacity: 1 },
-                    '100%': { opacity: 0.7 }
-                  }
-                }}>
-                  <Typography variant="body2">
-                    手机需要大幅度摇动才能检测到动作。如果多次尝试无效，请点击下方按钮。
+                <React.Fragment>
+                  <Typography variant="body1" sx={{ color: 'primary.main', fontWeight: 'bold', mb: 2 }}>
+                    请用力摇动手机掷硬币！
                   </Typography>
-                </Box>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={manualThrowCoin}
-                  sx={{ mt: 1 }}
-                >
-                  手动掷硬币
-                </Button>
-                
-                {/* 调试工具按钮 */}
-                {debugMode && (
-                  <Box sx={{ mt: 2, p: 1, border: '1px dashed', borderColor: 'grey.400', borderRadius: 1 }}>
-                    <Typography variant="caption" sx={{ display: 'block', mb: 1 }}>
-                      调试工具
+                  <Box sx={{ 
+                    p: 2, 
+                    bgcolor: 'info.light', 
+                    color: 'info.contrastText',
+                    borderRadius: 1,
+                    mb: 2,
+                    animation: 'pulse 1.5s infinite',
+                    '@keyframes pulse': {
+                      '0%': { opacity: 0.7 },
+                      '50%': { opacity: 1 },
+                      '100%': { opacity: 0.7 }
+                    }
+                  }}>
+                    <Typography variant="body2">
+                      手机需要大幅度摇动才能检测到动作。如果多次尝试无效，请点击下方按钮。
                     </Typography>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="info"
-                      onClick={() => {
-                        console.log('手动触发摇动事件测试');
-                        handleShakeToss(acceleration);
-                      }}
-                      sx={{ mr: 1 }}
-                    >
-                      测试摇动事件
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="warning"
-                      onClick={() => {
-                        console.log('当前状态:', { 
-                          permissionStatus, 
-                          isFlipping, 
-                          currentStep,
-                          accelerationData: acceleration
-                        });
-                      }}
-                    >
-                      检查状态
-                    </Button>
                   </Box>
-                )}
-              </React.Fragment>
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={manualThrowCoin}
+                    sx={{ mt: 1 }}
+                  >
+                    手动掷硬币
+                  </Button>
+                  
+                  {/* 调试工具按钮 */}
+                  {debugMode && (
+                    <Box sx={{ mt: 2, p: 1, border: '1px dashed', borderColor: 'grey.400', borderRadius: 1 }}>
+                      <Typography variant="caption" sx={{ display: 'block', mb: 1 }}>
+                        调试工具
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="info"
+                        onClick={() => {
+                          console.log('手动触发摇动事件测试');
+                          handleShakeToss(acceleration);
+                        }}
+                        sx={{ mr: 1 }}
+                      >
+                        测试摇动事件
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="warning"
+                        onClick={() => {
+                          console.log('当前状态:', { 
+                            permissionStatus, 
+                            isFlipping, 
+                            currentStep,
+                            accelerationData: acceleration
+                          });
+                        }}
+                      >
+                        检查状态
+                      </Button>
+                    </Box>
+                  )}
+                </React.Fragment>
+              
             ) : (
               <Button 
                 variant="contained" 

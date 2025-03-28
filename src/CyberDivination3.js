@@ -40,10 +40,11 @@ const CyberDivination3 = () => {
     acceleration, 
     permissionStatus, 
     shakeDetected,
+    isShaking,
     setShakeDetected,
     requestGyroscopePermission 
   } = useGyroscope({
-    onShake: handleShakeToss,
+  //   onShake: handleShakeToss,
     isFlipping,
     currentStep,
     setSnackbarMessage,
@@ -120,6 +121,7 @@ const CyberDivination3 = () => {
             lines={lines}
             acceleration={acceleration}
             shakeDetected={shakeDetected}
+            isShaking={isShaking}
             manualThrowCoin={manualThrowCoin}
             handleShakeToss={handleShakeToss}
           />

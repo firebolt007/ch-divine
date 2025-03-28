@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export const useGyroscope = ({ 
-  onShake, 
+//  onShake, 
   isFlipping,
   currentStep,
   setSnackbarMessage, 
@@ -9,95 +9,28 @@ export const useGyroscope = ({
 }) => {
   const [gyroscopeAvailable, setGyroscopeAvailable] = useState(false);
   const [shakeDetected, setShakeDetected] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+  const [lastShake, setLastshake] = useState(-1001);
   const [acceleration, setAcceleration] = useState({ x: 0, y: 0, z: 0 });
   const [permissionStatus, setPermissionStatus] = useState('idle');
   const [debugMode] = useState(true); // 调试模式
 
-    // 设置摇动检测
-    const setupShakeDetection = useCallback(() => {
-      // 节流处理 - 限制事件处理频率
-      let lastProcessTime = 0;
-      const PROCESS_INTERVAL = 100; // 每100ms处理一次
-      // 降低加速度阈值（提高灵敏度）
-      const SHAKE_THRESHOLD = 8; // 从15降低到7
-      
-      // 减少时间间隔（更频繁地响应摇动）
-      const SHAKE_TIMEOUT = 600; 
-      let lastShakeTime = 0;
-      
-      // 添加调试日志
-      if (debugMode) console.log('开始监听设备动作事件');
+  // const setupShakeDetection = useCallback(() => {
+  //   // 节流处理 - 限制事件处理频率
+  //   let lastProcessTime = 0;
+  //   const PROCESS_INTERVAL = 100; // 每100ms处理一次
+  //   // 降低加速度阈值（提高灵敏度）
+  //   const SHAKE_THRESHOLD = 8; // 从15降低到7
+    
+  //   // 减少时间间隔（更频繁地响应摇动）
+  //   const SHAKE_TIMEOUT = 600; 
+  //   let lastShakeTime = 0;
+    
+  //   // 添加调试日志
+    
 
-      const deviceMotionHandler = (event) => {
-        const now = Date.now();
-        // 节流: 只有经过足够间隔才处理事件
-        if (now - lastProcessTime < PROCESS_INTERVAL) return;
-        lastProcessTime = now;
-
-        const { accelerationIncludingGravity } = event;
-        
-        if (!accelerationIncludingGravity) return;
-        
-        const x = accelerationIncludingGravity.x || 0;
-        const y = accelerationIncludingGravity.y || 0;
-        const z = accelerationIncludingGravity.z || 0;
-        
-        setAcceleration({ x, y, z });
-        
-        // 检查是否处于可以响应摇动的状态
-        if (isFlipping || currentStep === 0 || currentStep > 6) return;
-        
-        // 直接用最简单的触发逻辑解决问题
-        // 任何轴上超过阈值的加速度都可能是摇动
-        const isSignificantMovement = 
-          Math.abs(x) > SHAKE_THRESHOLD || 
-          Math.abs(y) > SHAKE_THRESHOLD || 
-          Math.abs(z) > SHAKE_THRESHOLD;
-        
-        const currentTime = new Date().getTime();
-  
-        // 调试日志
-        if (debugMode && isSignificantMovement) {
-          console.log('检测到潜在摇动:', {
-            x: x.toFixed(2),
-            y: y.toFixed(2),
-            z: z.toFixed(2),
-            timeSinceLastShake: currentTime - lastShakeTime
-          });
-        }
-        
-        // 如果检测到显著移动且间隔足够
-        if (isSignificantMovement && (currentTime - lastShakeTime > SHAKE_TIMEOUT)) {
-          if (debugMode) console.log('✓ 触发有效摇动!', {x, y, z});
-          lastShakeTime = currentTime;
-          setShakeDetected(true);
-          
-          // 显示明显的视觉反馈
-          setSnackbarMessage('检测到摇动! 正在掷硬币...');
-          setSnackbarOpen(true);
-          
-          // 尝试振动反馈
-          if ('vibrate' in navigator) {
-            try {
-              navigator.vibrate(200);
-            } catch(e) {}
-          }
-          
-          // 触发掷硬币
-          onShake();
-        }
-      };
-      
-  
-      // 添加事件监听器
-      window.addEventListener('devicemotion', deviceMotionHandler);
-      
-      // 返回一个清理函数，可以在组件卸载时移除监听器
-      return () => {
-        if (debugMode) console.log('移除设备动作事件监听器');
-        window.removeEventListener('devicemotion', deviceMotionHandler);
-      };
-    }, [isFlipping, currentStep, onShake, acceleration]);
+    
+  // }, [onShake]);
   
   // 检查设备是否支持陀螺仪
   useEffect(() => {
@@ -147,16 +80,121 @@ export const useGyroscope = ({
     checkDeviceMotionSupport();
   }, [debugMode, setSnackbarMessage, setSnackbarOpen]);
 
+  //用useRef来保存最新的 isFlipping
+  const isFlippingRef = useRef(isFlipping);
+  useEffect(() => {
+    isFlippingRef.current = isFlipping; // 每次 isFlipping 更新时同步到 ref
+  }, [isFlipping]);
+
+  //用useRef来保存最新的 currentStep
+  const currentStepRef = useRef(currentStep);
+  useEffect(() => {
+    currentStepRef.current = currentStep; // 每次 currentStep 更新时同步到 ref
+  }, [currentStep]);
+
   // 监听权限状态和步骤状态，设置摇动检测
   useEffect(() => {
-    // 只有当权限已授予时才设置摇动检测
     if (permissionStatus !== 'granted') return;
+
+    const deviceMotionHandler = (event) => {
+      // const now = Date.now();
+
+      let lastProcessTime = 0;
+      const PROCESS_INTERVAL = 100; // 每100ms处理一次
+      // 降低加速度阈值（提高灵敏度）
+      const SHAKE_THRESHOLD = 15; // 从15降低到7
     
-    const cleanupFunction = setupShakeDetection();
+     // 减少时间间隔（更频繁地响应摇动）
+      const SHAKE_TIMEOUT = 600; 
+      let lastShakeTime = 0;
+      if (debugMode) console.log('开始监听设备动作事件');
+      const { accelerationIncludingGravity } = event;
+      
+      if (!accelerationIncludingGravity) return;
+      
+      const x = accelerationIncludingGravity.x || 0;
+      const y = accelerationIncludingGravity.y || 0;
+      const z = accelerationIncludingGravity.z || 0;
+      
+      setAcceleration({ x, y, z });
+      
+      // 检查是否处于可以响应摇动的状态
+      if (isFlippingRef.current || currentStepRef.current === 0 || currentStepRef.current > 6) return;
+      
+      // 直接用最简单的触发逻辑解决问题
+      // 任何轴上超过阈值的加速度都可能是摇动
+      const isSignificantMovement = 
+        Math.abs(x) > SHAKE_THRESHOLD || 
+        Math.abs(y) > SHAKE_THRESHOLD || 
+        Math.abs(z) > SHAKE_THRESHOLD;
+      
+      setLastshake(lastShakeTime);
+      const currentTime = new Date().getTime();
+
+      // 调试日志
+      if (debugMode && isSignificantMovement) {
+        console.log('检测到潜在摇动:', {
+          x: x.toFixed(2),
+          y: y.toFixed(2),
+          z: z.toFixed(2),
+          timeSinceLastShake: currentTime - lastShakeTime
+        });
+      }
+      
+      // 如果检测到显著移动且间隔足够
+      if (isSignificantMovement && (currentTime - lastShakeTime > SHAKE_TIMEOUT)) {
+        if (debugMode) console.log('✓ 触发有效摇动!', {x, y, z});
+        lastShakeTime = currentTime;
+        setShakeDetected(true);
+        
+        // 显示明显的视觉反馈
+        setSnackbarMessage('检测到摇动! 正在掷硬币...');
+        setSnackbarOpen(true);
+        
+        // 尝试振动反馈
+        if ('vibrate' in navigator) {
+          try {
+            navigator.vibrate(200);
+          } catch(e) {}
+        }
+        
+      }
+    };
     
-    // 返回清理函数
-    return cleanupFunction;
-  }, [permissionStatus, currentStep, isFlipping, setupShakeDetection]);
+
+    // 添加事件监听器
+    window.addEventListener('devicemotion', deviceMotionHandler);
+    
+    // 返回一个清理函数，可以在组件卸载时移除监听器
+    return () => {
+      if (debugMode) console.log('移除设备动作事件监听器');
+      window.removeEventListener('devicemotion', deviceMotionHandler);
+    };
+
+  }, [permissionStatus]);
+  
+  // 用 useRef 来保存最新的 lastShake
+  const lastShakeRef = useRef(lastShake);
+  useEffect(() => {
+    lastShakeRef.current = lastShake; // 每次 lastShake 更新时同步到 ref
+  }, [lastShake]);
+
+  // 检查摇动是否停止
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log('定期查看 lastShake:', lastShakeRef.current);
+      const currentTime = new Date().getTime();
+      if (currentTime - lastShakeRef.current > 1000) {
+        setShakeDetected(false);
+        setIsShaking(false);
+      }
+      else {
+        setIsShaking(true);
+      } 
+    }, 500); // 每秒查看一次
+
+    return () => clearInterval(intervalId); // 清除定时器
+  }, []);
 
   // 请求陀螺仪权限
   const requestGyroscopePermission = () => {
@@ -212,6 +250,7 @@ export const useGyroscope = ({
     acceleration,
     permissionStatus,
     shakeDetected,
+    isShaking,
     setShakeDetected,
     requestGyroscopePermission
   };
